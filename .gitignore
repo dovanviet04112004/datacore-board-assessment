@@ -1,0 +1,35 @@
+# Đề bài và tài liệu task (không public)
+DataCore_Technical_Assessment_Interns.doc
+docs/task1.md
+docs/task2.md
+docs/task3.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data files (optional - comment out if want to include)
+# data/raw/
+# data/processed/
+# data/final/

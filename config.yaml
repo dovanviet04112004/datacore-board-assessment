@@ -1,0 +1,117 @@
+# Configuration for DataCore Board Assessment
+
+# Scraping settings
+scraping:
+  # Request timeout in seconds
+  timeout: 30
+  # Delay between requests (seconds) - minimum 1-2 seconds to be respectful
+  delay: 1.5
+  # Maximum retries for failed requests
+  max_retries: 3
+  # User agent for requests
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+# CafeF scraper settings
+cafef:
+  # API endpoint (discovered via XHR inspection - faster than Selenium)
+  api_url: "https://s.cafef.vn/Ajax/CongTy/BanLanhDao.aspx?sym={ticker}"
+  # Original URL (for reference only - data loaded via AJAX)
+  # page_url: "https://cafef.vn/du-lieu/{exchange}/{ticker}-ban-lanh-dao-so-huu.chn"
+
+# Vietstock scraper settings
+vietstock:
+  base_url: "https://finance.vietstock.vn"
+  # URL pattern: https://finance.vietstock.vn/{TICKER}/ban-lanh-dao.htm
+  url_pattern: "{base_url}/{ticker}/ban-lanh-dao.htm"
+  # Session handling: Uses requests.Session() with auto CSRF token via cookies
+
+# List of tickers to scrape with exchange info
+tickers:
+  # HOSE tickers
+  - ticker: HPG
+    exchange: hose
+  - ticker: VNM
+    exchange: hose
+  - ticker: VIC
+    exchange: hose
+  - ticker: VHM
+    exchange: hose
+  - ticker: VCB
+    exchange: hose
+  - ticker: BID
+    exchange: hose
+  - ticker: CTG
+    exchange: hose
+  - ticker: TCB
+    exchange: hose
+  - ticker: MBB
+    exchange: hose
+  - ticker: VPB
+    exchange: hose
+  - ticker: FPT
+    exchange: hose
+  - ticker: MSN
+    exchange: hose
+  - ticker: VRE
+    exchange: hose
+  - ticker: GAS
+    exchange: hose
+  - ticker: SAB
+    exchange: hose
+  - ticker: PLX
+    exchange: hose
+  - ticker: MWG
+    exchange: hose
+  - ticker: PNJ
+    exchange: hose
+  - ticker: REE
+    exchange: hose
+  - ticker: SSI
+    exchange: hose
+  # HNX tickers
+  - ticker: SHB
+    exchange: hnx
+  - ticker: PVS
+    exchange: hnx
+  - ticker: VCS
+    exchange: hnx
+  - ticker: MBS
+    exchange: hnx
+  - ticker: NVB
+    exchange: hnx
+  - ticker: HUT
+    exchange: hnx
+  - ticker: IDC
+    exchange: hnx
+  - ticker: CEO
+    exchange: hnx
+  - ticker: PVI
+    exchange: hnx
+  - ticker: SHS
+    exchange: hnx
+  - ticker: DVD
+    exchange: hnx
+  - ticker: TAR
+    exchange: hnx
+  - ticker: PVB
+    exchange: hnx
+
+# Data paths
+paths:
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  final_data: "data/final"
+
+# Merge settings
+merge:
+  # Columns to use for matching
+  match_columns:
+    - ticker
+    - name_normalized
+  # Similarity threshold for fuzzy matching (0-1)
+  similarity_threshold: 0.85
+
+# Logging
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
