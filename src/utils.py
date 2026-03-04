@@ -8,10 +8,10 @@ from unidecode import unidecode
 
 
 def load_config(config_path: str = "config.yaml") -> dict:
-    """Load configuration from YAML file."""
+    """Tải cấu hình từ file YAML."""
     config_file = Path(config_path)
     if not config_file.exists():
-        # Try looking in parent directory
+        # Thử tìm trong thư mục cha
         config_file = Path(__file__).parent.parent / config_path
     
     with open(config_file, 'r', encoding='utf-8') as f:
@@ -19,7 +19,7 @@ def load_config(config_path: str = "config.yaml") -> dict:
 
 
 def setup_logging(config: dict):
-    """Setup logging based on configuration."""
+    """Thiết lập logging dựa trên cấu hình."""
     log_config = config.get('logging', {})
     logging.basicConfig(
         level=getattr(logging, log_config.get('level', 'INFO')),
@@ -29,24 +29,24 @@ def setup_logging(config: dict):
 
 def normalize_name(name: str) -> str:
     """
-    Normalize Vietnamese names for matching.
+    Chuẩn hóa tên tiếng Việt để so khớp.
     
-    Args:
-        name: Input name string
+    Tham số:
+        name: Chuỗi tên đầu vào
         
-    Returns:
-        Normalized name string
+    Trả về:
+        Chuỗi tên đã chuẩn hóa
     """
     if not name or not isinstance(name, str):
         return ""
     
-    # Convert to lowercase
+    # Chuyển thành chữ thường
     name = name.lower().strip()
     
-    # Remove extra whitespace
+    # Xóa khoảng trắng thừa
     name = re.sub(r'\s+', ' ', name)
     
-    # Convert Vietnamese characters to ASCII for matching
+    # Chuyển ký tự tiếng Việt sang ASCII để so khớp
     name_ascii = unidecode(name)
     
     return name_ascii
@@ -54,21 +54,21 @@ def normalize_name(name: str) -> str:
 
 def normalize_company_name(company: str) -> str:
     """
-    Normalize company names for matching.
+    Chuẩn hóa tên công ty để so khớp.
     
-    Args:
-        company: Input company name string
+    Tham số:
+        company: Chuỗi tên công ty đầu vào
         
-    Returns:
-        Normalized company name string
+    Trả về:
+        Chuỗi tên công ty đã chuẩn hóa
     """
     if not company or not isinstance(company, str):
         return ""
     
-    # Convert to lowercase
+    # Chuyển thành chữ thường
     company = company.lower().strip()
     
-    # Remove common suffixes
+    # Xóa các hậu tố phổ biến
     suffixes = [
         'công ty cổ phần',
         'công ty tnhh',
@@ -85,21 +85,21 @@ def normalize_company_name(company: str) -> str:
     for suffix in suffixes:
         company = company.replace(suffix, '')
     
-    # Remove extra whitespace
+    # Xóa khoảng trắng thừa
     company = re.sub(r'\s+', ' ', company).strip()
     
-    # Convert Vietnamese characters to ASCII
+    # Chuyển ký tự tiếng Việt sang ASCII
     company_ascii = unidecode(company)
     
     return company_ascii
 
 
 def clean_text(text: str) -> str:
-    """Clean and normalize text."""
+    """Làm sạch và chuẩn hóa văn bản."""
     if not text or not isinstance(text, str):
         return ""
     
-    # Remove extra whitespace
+    # Xóa khoảng trắng thừa
     text = re.sub(r'\s+', ' ', text.strip())
     
     return text
@@ -107,14 +107,14 @@ def clean_text(text: str) -> str:
 
 def calculate_similarity(str1: str, str2: str) -> float:
     """
-    Calculate similarity between two strings using Levenshtein distance.
+    Tính độ tương đồng giữa hai chuỗi dựa trên khoảng cách Levenshtein.
     
-    Args:
-        str1: First string
-        str2: Second string
+    Tham số:
+        str1: Chuỗi thứ nhất
+        str2: Chuỗi thứ hai
         
-    Returns:
-        Similarity score between 0 and 1
+    Trả về:
+        Điểm tương đồng từ 0 đến 1
     """
     if not str1 or not str2:
         return 0.0
@@ -125,21 +125,21 @@ def calculate_similarity(str1: str, str2: str) -> float:
     if str1 == str2:
         return 1.0
     
-    # Simple ratio based on common characters
+    # Tỷ lệ đơn giản dựa trên ký tự chung
     len1, len2 = len(str1), len(str2)
     max_len = max(len1, len2)
     
     if max_len == 0:
         return 1.0
     
-    # Count matching characters
+    # Đếm số ký tự khớp
     matches = sum(1 for a, b in zip(str1, str2) if a == b)
     
     return matches / max_len
 
 
 def ensure_directory(path: str) -> Path:
-    """Ensure directory exists, create if not."""
+    """Đảm bảo thư mục tồn tại, tạo mới nếu chưa có."""
     dir_path = Path(path)
     dir_path.mkdir(parents=True, exist_ok=True)
     return dir_path

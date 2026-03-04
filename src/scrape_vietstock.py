@@ -12,14 +12,13 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
-# Thêm thư mục cha vào path để import
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.utils import load_config, setup_logging, normalize_name
 
 logger = logging.getLogger(__name__)
 
-# Danh sách mã cổ phiếu mặc định
+# danh sách mã cổ phiếu
 DEFAULT_TICKERS = [
     'HPG', 'VNM', 'VIC', 'VHM', 'VCB', 'BID', 'CTG', 'TCB', 'MBB', 'VPB',
     'FPT', 'MSN', 'VRE', 'GAS', 'SAB', 'PLX', 'MWG', 'PNJ', 'REE', 'SSI',
@@ -27,7 +26,6 @@ DEFAULT_TICKERS = [
     'DVD', 'TAR', 'PVB',
 ]
 
-# Ánh xạ viết tắt chức vụ sang loại ban
 ROLE_TO_BOARD_TYPE = {
     'CTHĐQT': 'HĐQT',
     'Phó CTHĐQT': 'HĐQT',
@@ -55,7 +53,7 @@ ROLE_TO_BOARD_TYPE = {
 
 
 def get_board_type(role: str) -> str:
-    """Ánh xạ chức vụ sang loại ban."""
+    """Ánh xạ chức vụ sang loại ban"""
     role_normalized = role.strip()
     
     # Khớp trực tiếp trước
@@ -75,13 +73,13 @@ def get_board_type(role: str) -> str:
 
 
 class VietstockScraper:
-    """Scraper thu thập dữ liệu ban lãnh đạo từ Vietstock."""
+    """Scraper thu thập dữ liệu ban lãnh đạo từ Vietstock"""
     
     BASE_URL = "https://finance.vietstock.vn"
     LEADER_URL = "{base}/{ticker}/ban-lanh-dao.htm"
     
     def __init__(self, config: dict):
-        """Khởi tạo scraper."""
+        """khởi tạo scraper"""
         self.config = config
         self.scraping_config = config.get('scraping', {})
         self.timeout = self.scraping_config.get('timeout', 30)
@@ -99,10 +97,10 @@ class VietstockScraper:
         }
     
     def _init_session(self):
-        """Khởi tạo session với CSRF token."""
+        """khởi tạo session với CSRF token"""
         self.session = requests.Session()
         
-        # Headers giả lập trình duyệt
+        # headers giả lập trình duyệt
         self.session.headers.update({
             'User-Agent': self.scraping_config.get(
                 'user_agent',
@@ -115,9 +113,9 @@ class VietstockScraper:
             'Upgrade-Insecure-Requests': '1',
         })
         
-        # Lấy cookies từ trang chủ
+        # lấy cookies từ trang chủ
         try:
-            logger.info("Đang thiết lập session Vietstock...")
+            logger.info("Đang thiết lập session Vietstock")
             resp = self.session.get(self.BASE_URL, timeout=self.timeout)
             resp.raise_for_status()
             
@@ -125,7 +123,7 @@ class VietstockScraper:
             if '__RequestVerificationToken' in cookies:
                 logger.info("Đã lấy CSRF token")
             if 'ASP.NET_SessionId' in cookies:
-                logger.info(f"Session ID: {cookies['ASP.NET_SessionId'][:8]}...")
+                logger.info(f"Session ID: {cookies['ASP.NET_SessionId'][:8]}")
                 
             logger.info(f"Session đã thiết lập")
             
@@ -166,7 +164,7 @@ class VietstockScraper:
         return None
     
     def _parse_board_table(self, table, ticker: str, scraped_at: str) -> List[Dict]:
-        """Phân tích bảng thành viên."""
+        """phân tích bảng thành viên"""
         records = []
         rows = table.find_all('tr')
         
@@ -202,11 +200,11 @@ class VietstockScraper:
                 shares = remaining_cells[4].get_text(strip=True)
                 tenure = remaining_cells[5].get_text(strip=True)
                 
-                # Bỏ qua dữ liệu bị che (nội dung trả phí)
+                # bỏ qua dữ liệu bị che (nội dung trả phí)
                 if '***' in name_raw or name_raw == '-':
                     continue
                 
-                # Xóa tiền tố danh xưng
+                # xóa tiền tố danh xưng
                 person_name = name_raw
                 for prefix in ['Ông ', 'Bà ', 'ông ', 'bà ']:
                     if person_name.startswith(prefix):
@@ -223,7 +221,7 @@ class VietstockScraper:
                     current_year = datetime.now().year
                     age = current_year - int(year_of_birth)
                 
-                # Tạo bản ghi
+                # tạo bản ghi
                 record = {
                     'ticker': ticker,
                     'exchange': self._get_exchange(ticker),
@@ -251,7 +249,7 @@ class VietstockScraper:
         return records
     
     def _get_exchange(self, ticker: str) -> str:
-        """Lấy sàn giao dịch."""
+        """lấy sàn giao dịch"""
         tickers_config = self.config.get('tickers', [])
         for t in tickers_config:
             if t.get('ticker') == ticker:
@@ -261,7 +259,7 @@ class VietstockScraper:
         return 'HNX' if ticker in hnx_tickers else 'HOSE'
     
     def scrape_ticker(self, ticker: str) -> List[Dict]:
-        """Thu thập dữ liệu cho một mã."""
+        """thu thập dữ liệu cho một mã"""
         logger.info(f"Scraping Vietstock for {ticker}")
         scraped_at = datetime.now().isoformat()
         
@@ -289,7 +287,7 @@ class VietstockScraper:
         return records
     
     def scrape_all(self, tickers: List[str] = None) -> pd.DataFrame:
-        """Thu thập dữ liệu cho tất cả các mã."""
+        """Thu thập dữ liệu cho tất cả các mã"""
         if tickers is None:
             tickers_config = self.config.get('tickers', [])
             if tickers_config:
@@ -302,7 +300,7 @@ class VietstockScraper:
         failed_tickers = []
         successful_tickers = set()
         
-        logger.info(f"Starting Vietstock scrape for {len(tickers)} tickers"))
+        logger.info(f"Starting Vietstock scrape for {len(tickers)} tickers")
         
         for i, ticker in enumerate(tickers, 1):
             try:
@@ -318,7 +316,7 @@ class VietstockScraper:
                 logger.error(f"Error scraping {ticker}: {e}")
                 failed_tickers.append(ticker)
             
-            # Giới hạn tốc độ
+            # giới hạn tốc độ
             if i < len(tickers):
                 sleep_time = self.delay + random.uniform(0, 0.5)
                 logger.debug(f"Nghỉ {sleep_time:.2f}s")
@@ -327,7 +325,7 @@ class VietstockScraper:
             if i % 5 == 0:
                 logger.info(f"Progress: {i}/{len(tickers)} tickers processed")
         
-        # Retry các ticker thất bại (tối đa 3 vòng)
+        # retry các ticker thất bại (tối đa 3 vòng)
         max_retry_rounds = 3
         retry_round = 0
         
@@ -338,7 +336,7 @@ class VietstockScraper:
             logger.info(f"Retry round {retry_round}/{max_retry_rounds} for {len(failed_tickers)} failed tickers")
             time.sleep(retry_delay * 2)
             
-            # Khởi tạo lại session (cookies mới)
+            # khởi tạo lại session (cookies mới)
             self._init_session()
             
             still_failed = []
@@ -375,21 +373,19 @@ class VietstockScraper:
         return df
     
     def close(self):
-        """Đóng session."""
         if self.session:
             self.session.close()
             self.session = None
 
 
 def save_to_parquet(df: pd.DataFrame, output_path: str):
-    """Lưu DataFrame sang Parquet."""
+    """lưu DataFrame sang định dạng Parquet"""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(output_path, engine='pyarrow', index=False)
     logger.info(f"Saved {len(df)} records to {output_path}")
 
 
 def main():
-    """Điểm vào chính."""
     config = load_config()
     setup_logging(config)
     scraper = VietstockScraper(config)
@@ -398,7 +394,7 @@ def main():
         df = scraper.scrape_all()
         
         if not df.empty:
-            # Lưu raw và processed
+          
             raw_path = Path(__file__).parent.parent / 'data' / 'raw' / 'vietstock_raw.parquet'
             raw_path.parent.mkdir(parents=True, exist_ok=True)
             save_to_parquet(df, str(raw_path))
@@ -407,7 +403,6 @@ def main():
             output_path.parent.mkdir(parents=True, exist_ok=True)
             save_to_parquet(df, str(output_path))
             
-            # In tóm tắt
             print("\n" + "="*60)
             print("VIETSTOCK SCRAPING SUMMARY")
             print("="*60)

@@ -1,33 +1,33 @@
-# Configuration for DataCore Board Assessment
+# Cấu hình cho DataCore Board Assessment
 
-# Scraping settings
+# Cài đặt scraping
 scraping:
-  # Request timeout in seconds
+  # Thời gian chờ tối đa (giây)
   timeout: 30
-  # Delay between requests (seconds) - minimum 1-2 seconds to be respectful
+  # Độ trễ giữa các yêu cầu (giây) - tối thiểu 1-2 giây để tránh quá tải server
   delay: 1.5
-  # Maximum retries for failed requests
+  # Số lần thử lại tối đa cho yêu cầu thất bại
   max_retries: 3
-  # User agent for requests
+  # User agent cho các yêu cầu
   user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
-# CafeF scraper settings
+# Cài đặt scraper CafeF
 cafef:
-  # API endpoint (discovered via XHR inspection - faster than Selenium)
+  # Điểm cuối API (phát hiện qua XHR - nhanh hơn Selenium)
   api_url: "https://s.cafef.vn/Ajax/CongTy/BanLanhDao.aspx?sym={ticker}"
-  # Original URL (for reference only - data loaded via AJAX)
+  # URL gốc (chỉ để tham khảo - dữ liệu tải qua AJAX)
   # page_url: "https://cafef.vn/du-lieu/{exchange}/{ticker}-ban-lanh-dao-so-huu.chn"
 
-# Vietstock scraper settings
+# Cài đặt scraper Vietstock
 vietstock:
   base_url: "https://finance.vietstock.vn"
-  # URL pattern: https://finance.vietstock.vn/{TICKER}/ban-lanh-dao.htm
+  # Mẫu URL: https://finance.vietstock.vn/{TICKER}/ban-lanh-dao.htm
   url_pattern: "{base_url}/{ticker}/ban-lanh-dao.htm"
-  # Session handling: Uses requests.Session() with auto CSRF token via cookies
+  # Xử lý session: Dùng requests.Session() với CSRF token tự động qua cookies
 
-# List of tickers to scrape with exchange info
+# Danh sách mã cổ phiếu cần thu thập với thông tin sàn
 tickers:
-  # HOSE tickers
+  # Mã HOSE
   - ticker: HPG
     exchange: hose
   - ticker: VNM
@@ -68,7 +68,7 @@ tickers:
     exchange: hose
   - ticker: SSI
     exchange: hose
-  # HNX tickers
+  # Mã HNX
   - ticker: SHB
     exchange: hnx
   - ticker: PVS
@@ -96,22 +96,22 @@ tickers:
   - ticker: PVB
     exchange: hnx
 
-# Data paths
+# Đường dẫn dữ liệu
 paths:
   raw_data: "data/raw"
   processed_data: "data/processed"
   final_data: "data/final"
 
-# Merge settings
+# Cài đặt merge
 merge:
-  # Columns to use for matching
+  # Các cột dùng để so khớp
   match_columns:
     - ticker
     - name_normalized
-  # Similarity threshold for fuzzy matching (0-1)
+  # Ngưỡng tương đồng cho so khớp mờ (0-1)
   similarity_threshold: 0.85
 
-# Logging
+# Cài đặt logging
 logging:
   level: INFO
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

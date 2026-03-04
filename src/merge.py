@@ -9,7 +9,7 @@ from typing import List, Dict, Tuple, Optional
 import pandas as pd
 import numpy as np
 
-# Thêm thư mục cha vào path để import
+
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.utils import load_config, setup_logging, normalize_name, calculate_similarity
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_processed_data(config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Tải dữ liệu đã xử lý từ cả hai nguồn."""
+    """tải dữ liệu đã xử lý từ cả hai nguồn"""
     paths = config['paths']
     
     cafef_path = Path(paths['processed_data']) / 'cafef_processed.parquet'
@@ -43,13 +43,13 @@ def load_processed_data(config: dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def generate_member_id(ticker: str, name_normalized: str) -> str:
-    """Tạo ID thành viên duy nhất."""
+    """tạo ID thành viên duy nhất"""
     key = f"{ticker.upper()}:{name_normalized.lower()}"
     return hashlib.md5(key.encode()).hexdigest()[:8]
 
 
 def standardize_board_type(cafef_type: str, vietstock_type: str) -> str:
-    """Chuẩn hóa loại ban từ cả hai nguồn."""
+    """chuẩn hóa loại ban từ cả hai nguồn"""
     if vietstock_type and vietstock_type not in ['', 'nan', None]:
         return vietstock_type
     
@@ -67,7 +67,7 @@ def standardize_board_type(cafef_type: str, vietstock_type: str) -> str:
 
 def merge_records(cafef_row: pd.Series, vietstock_row: pd.Series, 
                   confidence: float) -> Dict:
-    """Merge hai bản ghi khớp từ CafeF và Vietstock."""
+    """Merge hai bản ghi khớp từ CafeF và Vietstock"""
     ticker = cafef_row.get('ticker', vietstock_row.get('ticker', ''))
     name_normalized = cafef_row.get('name_normalized', vietstock_row.get('name_normalized', ''))
     
@@ -109,7 +109,7 @@ def merge_records(cafef_row: pd.Series, vietstock_row: pd.Series,
 
 
 def create_single_source_record(row: pd.Series, source: str) -> Dict:
-    """Tạo bản ghi từ một nguồn duy nhất."""
+    """Tạo bản ghi từ một nguồn duy nhất"""
     ticker = row.get('ticker', '')
     name_normalized = row.get('name_normalized', '')
     
@@ -141,7 +141,7 @@ def create_single_source_record(row: pd.Series, source: str) -> Dict:
 
 def merge_data(cafef_df: pd.DataFrame, vietstock_df: pd.DataFrame, 
                config: dict) -> pd.DataFrame:
-    """Merge dữ liệu từ cả hai nguồn với 3 giai đoạn: khớp chính xác, khớp mờ, bản ghi đơn."""
+    """merge dữ liệu từ cả hai nguồn với 3 giai đoạn: khớp chính xác, khớp mờ, bản ghi đơn"""
     merge_config = config.get('merge', {})
     similarity_threshold = merge_config.get('similarity_threshold', 0.85)
     
@@ -171,14 +171,14 @@ def merge_data(cafef_df: pd.DataFrame, vietstock_df: pd.DataFrame,
         return pd.DataFrame(merged_records)
     
     if vietstock_df.empty:
-        logger.info("Dữ liệu Vietstock rỗng, chỉ sử dụng CafeF"))
+        logger.info("Dữ liệu Vietstock rỗng, chỉ sử dụng CafeF")
         for idx, row in cafef_df.iterrows():
             record = create_single_source_record(row, 'cafef')
             merged_records.append(record)
             stats['cafef_only'] += 1
         return pd.DataFrame(merged_records)
     
-    # --- Giai đoạn 1: Khớp chính xác ---
+    # khớp chính xác
     logger.info("Giai đoạn 1: Khớp chính xác...")
     
     for cafef_idx, cafef_row in cafef_df.iterrows():
@@ -210,8 +210,8 @@ def merge_data(cafef_df: pd.DataFrame, vietstock_df: pd.DataFrame,
     
     logger.info(f"Giai đoạn 1 hoàn thành: {stats['exact_matches']} khớp chính xác")
     
-    # --- Giai đoạn 2: Khớp mờ ---
-    logger.info("Giai đoạn 2: Khớp mờ...")
+    # Khớp mờ 
+    logger.info("Giai đoạn 2: Khớp mờ")
     
     unmatched_cafef = cafef_df[~cafef_df.index.isin(matched_cafef_indices)]
     unmatched_vietstock = vietstock_df[~vietstock_df.index.isin(matched_vietstock_indices)]
@@ -260,7 +260,7 @@ def merge_data(cafef_df: pd.DataFrame, vietstock_df: pd.DataFrame,
     
     logger.info(f"Giai đoạn 2 hoàn thành: {stats['fuzzy_matches']} khớp mờ")
     
-    # --- Giai đoạn 3: Thêm bản ghi không khớp ---
+    # Thêm bản ghi không khớp
     logger.info("Giai đoạn 3: Thêm các bản ghi không khớp...")
     
     for cafef_idx, cafef_row in cafef_df.iterrows():
@@ -300,7 +300,7 @@ def merge_data(cafef_df: pd.DataFrame, vietstock_df: pd.DataFrame,
 
 
 def save_final_data(df: pd.DataFrame, config: dict):
-    """Lưu dữ liệu golden vào Parquet và CSV."""
+    """Lưu dữ liệu golden vào Parquet"""
     final_dir = Path(config['paths']['final_data'])
     final_dir.mkdir(parents=True, exist_ok=True)
     
@@ -314,7 +314,7 @@ def save_final_data(df: pd.DataFrame, config: dict):
 
 
 def main():
-    """Điểm vào chính."""
+    """Điểm vào chính"""
     config = load_config()
     setup_logging(config)
     

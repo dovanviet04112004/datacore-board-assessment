@@ -12,14 +12,14 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
-# Thêm thư mục cha vào path để import
+
 sys.path.append(str(Path(__file__).parent.parent))
 
 from src.utils import load_config, setup_logging, normalize_name
 
 logger = logging.getLogger(__name__)
 
-# Danh sách mã cổ phiếu mặc định với thông tin sàn (ticker, exchange)
+# danh sách mã cổ phiếu mặc định với thông tin sàn (ticker, exchange)
 DEFAULT_TICKERS = [
     # HOSE (20 mã)
     ('HPG', 'hose'), ('VNM', 'hose'), ('VIC', 'hose'), ('VHM', 'hose'), ('VCB', 'hose'),
@@ -32,7 +32,7 @@ DEFAULT_TICKERS = [
     ('DVD', 'hnx'), ('TAR', 'hnx'), ('PVB', 'hnx'),
 ]
 
-# Ánh xạ loại ban dựa trên tiêu đề bảng
+
 BOARD_TYPE_MAPPING = {
     'HỘI ĐỒNG SÁNG LẬP': 'HĐQT',
     'HỘI ĐỒNG QUẢN TRỊ': 'HĐQT',
@@ -52,13 +52,13 @@ def get_board_type(header_text: str) -> str:
 
 
 class CaFeFScraper:
-    """Scraper thu thập dữ liệu ban lãnh đạo từ CafeF sử dụng AJAX API."""
+    """ AJAX API """
     
     API_URL = "https://s.cafef.vn/Ajax/CongTy/BanLanhDao.aspx?sym={ticker}"
     TARGET_URL = "https://cafef.vn/du-lieu/{exchange}/{ticker}-ban-lanh-dao-so-huu.chn"
     
     def __init__(self, config: dict):
-        """Khởi tạo scraper."""
+        """khởi tạo scraper"""
         self.config = config
         self.scraping_config = config.get('scraping', {})
         self.timeout = self.scraping_config.get('timeout', 30)
@@ -123,7 +123,7 @@ class CaFeFScraper:
     
     def _parse_board_table(self, table, board_type: str, ticker: str, 
                            exchange: str, scraped_at: str) -> List[Dict]:
-        """Phân tích bảng thành viên ban lãnh đạo."""
+        """phân tích bảng thành viên ban lãnh đạo"""
         records = []
         rows = table.find_all('tr')
         
@@ -147,7 +147,7 @@ class CaFeFScraper:
                 if name_raw == 'Họ tên' or role_raw == 'Chức vụ':
                     continue
                 
-                # Xóa tiền tố danh xưng
+                # xóa tiền tố danh xưng
                 person_name = name_raw
                 for prefix in ['Ông ', 'Bà ', 'ông ', 'bà ']:
                     if person_name.startswith(prefix):
@@ -180,10 +180,9 @@ class CaFeFScraper:
         return records
     
     def _parse_html(self, html: str, ticker: str, exchange: str) -> List[Dict]:
-        """Phân tích dữ liệu từ HTML."""
+        """phân tích dữ liệu từ HTML """
         scraped_at = datetime.now().isoformat()
         soup = BeautifulSoup(html, 'lxml')
-        
         all_records = []
         seen_names = set()
         tables = soup.find_all('table')
@@ -213,7 +212,7 @@ class CaFeFScraper:
         return all_records
     
     def scrape_ticker(self, ticker: str, exchange: str) -> List[Dict]:
-        """Thu thập dữ liệu cho một mã."""
+        """thu thập dữ liệu cho một mã"""
         logger.info(f"Scraping CafeF for {ticker}")
         
         html = self._fetch_page(ticker)
@@ -227,7 +226,7 @@ class CaFeFScraper:
         return records
     
     def scrape_all(self, tickers: List[Tuple[str, str]] = None) -> pd.DataFrame:
-        """Thu thập dữ liệu cho tất cả các mã."""
+        """thu thập dữ liệu cho tất cả các mã"""
         if tickers is None:
             tickers_config = self.config.get('tickers', [])
             if tickers_config:
@@ -265,7 +264,7 @@ class CaFeFScraper:
             if i % 5 == 0:
                 logger.info(f"Progress: {i}/{len(tickers)} tickers processed")
         
-        # Retry các ticker thất bại (tối đa 3 vòng)
+        # retry các ticker thất bại (tối đa 3 vòng)
         max_retry_rounds = 3
         retry_round = 0
         
@@ -310,21 +309,20 @@ class CaFeFScraper:
         return df
     
     def close(self):
-        """Đóng session."""
+        """đóng session"""
         if self.session:
             self.session.close()
             self.session = None
 
 
 def save_to_parquet(df: pd.DataFrame, output_path: str):
-    """Lưu DataFrame sang định dạng Parquet."""
+    """lưu DataFrame sang định dạng Parquet"""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(output_path, engine='pyarrow', index=False)
     logger.info(f"Saved {len(df)} records to {output_path}")
 
 
 def main():
-    """Điểm vào chính."""
     config = load_config()
     setup_logging(config)
     scraper = CaFeFScraper(config)
@@ -333,7 +331,7 @@ def main():
         df = scraper.scrape_all()
         
         if not df.empty:
-            # Lưu raw và processed
+            
             raw_path = Path(__file__).parent.parent / 'data' / 'raw' / 'cafef_raw.parquet'
             raw_path.parent.mkdir(parents=True, exist_ok=True)
             save_to_parquet(df, str(raw_path))
@@ -342,7 +340,7 @@ def main():
             output_path.parent.mkdir(parents=True, exist_ok=True)
             save_to_parquet(df, str(output_path))
             
-            # In tóm tắt
+          
             print("\n" + "="*60)
             print("CAFEF SCRAPING SUMMARY")
             print("="*60)

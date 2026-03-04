@@ -1,146 +1,184 @@
-# Data Quality Report
+# Báo cáo Chất lượng Dữ liệu (Data Quality Report)
 
-## Overview
-Quality analysis of scraped and merged board member data from CafeF and Vietstock.
+## Tổng quan
+Phân tích chất lượng dữ liệu ban lãnh đạo từ CafeF và Vietstock sau khi thu thập và hợp nhất.
 
-**Report Date:** 2026-03-03
+**Ngày báo cáo:** 2026-03-05
 
-## Data Collection Summary
+---
 
-| Metric | CafeF | Vietstock | Merged (Golden) |
-|--------|-------|-----------|-----------------|
-| Total Records | 1630 | 478 | 1503 |
-| Unique Tickers | 33 | 32 | 33 |
-| Unique Members | ~1600 | ~460 | 1503 |
-| Exchanges | HOSE, HNX | HOSE, HNX | HOSE, HNX |
+## Tóm tắt thu thập dữ liệu
 
-## Source Statistics
+| Metric | CafeF | Vietstock | Golden Dataset |
+|--------|-------|-----------|----------------|
+| Tổng bản ghi | 1630 | 478 | 1503 |
+| Số ticker | 33 | 32 | 33 |
+| Tỷ lệ thành công | 100% | 97% | - |
+| Sàn giao dịch | HOSE, HNX | HOSE, HNX | HOSE, HNX |
 
-### CafeF (Task 1)
-- **API Endpoint:** `s.cafef.vn/Ajax/CongTy/BanLanhDao.aspx`
-- **Success Rate:** 33/33 tickers (100%)
-- **Failed:** None (with retry logic)
-- **Average time/ticker:** ~0.5s
+---
 
-### Vietstock (Task 2)
+## Thống kê theo nguồn
+
+### Task 1: CafeF
+- **API Endpoint:** `s.cafef.vn/Ajax/CongTy/BanLanhDao.aspx?sym={ticker}`
+- **Tỷ lệ thành công:** 33/33 mã (100%)
+- **Ticker thất bại:** Không có (SAB retry thành công)
+- **Thời gian trung bình/ticker:** ~0.5 giây
+- **Tổng bản ghi:** 1630
+
+**Phân bố theo sàn:**
+| Sàn | Số bản ghi |
+|-----|------------|
+| HOSE | 1126 |
+| HNX | 504 |
+
+### Task 2: Vietstock
 - **URL Pattern:** `finance.vietstock.vn/{TICKER}/ban-lanh-dao.htm`
-- **Success Rate:** 32/33 tickers (97%)
-- **Failed:** DVD (premium content masked)
-- **Average time/ticker:** ~1.5s
+- **Tỷ lệ thành công:** 32/33 mã (97%)
+- **Ticker thất bại:** DVD (dữ liệu bị che `***` - nội dung trả phí)
+- **Thời gian trung bình/ticker:** ~1.5 giây
+- **Tổng bản ghi:** 478
 
-## Completeness Analysis
+**Phân bố theo loại ban:**
+| Loại ban | Số bản ghi |
+|----------|------------|
+| HĐQT | 234 |
+| Ban GĐ | 155 |
+| BKS | 80 |
+| Khác | 9 |
 
-### Field Completeness
+---
 
-| Field | CafeF | Vietstock | Golden Dataset |
-|-------|-------|-----------|----------------|
+## Phân tích độ đầy đủ (Completeness)
+
+### Độ đầy đủ theo trường
+
+| Trường | CafeF | Vietstock | Golden Dataset |
+|--------|-------|-----------|----------------|
 | ticker | 100% | 100% | 100% |
 | exchange | 100% | 100% | 100% |
 | person_name | 100% | 100% | 100% |
 | role | 100% | 100% | 100% |
 | board_type | 100% | 100% | 100% |
-| age | ~90% | ~95% | ~97% |
-| year_of_birth | N/A | ~95% | 74.5% |
-| education | N/A | ~80% | ~67% |
-| shares | N/A | ~85% | ~70% |
-| tenure_since | N/A | ~80% | ~66% |
+| age | ~90% | ~95% | ~75% |
+| year_of_birth | N/A | ~95% | ~30% |
+| education | N/A | ~80% | ~30% |
+| shares | N/A | ~85% | ~30% |
+| tenure_since | N/A | ~80% | ~30% |
 
-## Merge Quality
+**Ghi chú:** Các trường year_of_birth, education, shares, tenure_since chỉ có từ Vietstock, nên tỷ lệ thấp hơn trong Golden Dataset do đa số là bản ghi chỉ từ CafeF.
 
-### Match Distribution
+---
 
-| Match Type | Count | Percentage | Confidence |
-|------------|-------|------------|------------|
-| Exact match | 452 | 30.1% | 1.0 |
-| Fuzzy match | 2 | 0.1% | 0.85-0.99 |
-| CafeF only | 1025 | 68.2% | 0.5 |
-| Vietstock only | 24 | 1.6% | 0.5 |
+## Chất lượng Merge (Task 3)
 
-### Source Coverage
+### Phân bố loại khớp
 
-| Source | Records | Percentage |
-|--------|---------|------------|
-| Both sources | 454 | 30.2% |
-| CafeF only | 1025 | 68.2% |
-| Vietstock only | 24 | 1.6% |
+| Loại khớp | Số lượng | Tỷ lệ | Confidence |
+|-----------|----------|-------|------------|
+| Khớp chính xác | 452 | 30.1% | 1.0 |
+| Khớp mờ (fuzzy) | 2 | 0.1% | 0.85-0.99 |
+| Chỉ CafeF | 1025 | 68.2% | 0.5 |
+| Chỉ Vietstock | 24 | 1.6% | 0.5 |
+| **Tổng** | **1503** | **100%** | - |
 
-## Accuracy Analysis
+### Phân bố nguồn dữ liệu
 
-### Name Matching
-- **Exact matches:** 452 (30.1%)
-- **Fuzzy matches:** 2 (0.1%)
-- **Unmatched records:** 1049 (69.8%)
+| Nguồn | Số bản ghi | Tỷ lệ |
+|-------|------------|-------|
+| Cả 2 nguồn (`cafef,vietstock`) | 454 | 30.2% |
+| Chỉ CafeF (`cafef`) | 1025 | 68.2% |
+| Chỉ Vietstock (`vietstock`) | 24 | 1.6% |
 
-### Board Type Consistency
-- Records with matching board type from both sources: ~90%
-- Differences due to role classification variations
+### Phân bố điểm tin cậy
 
-### Duplicate Detection
-- **Duplicates removed:** 151
-- **Reason:** Same person with multiple roles in same company
+| Confidence Score | Số bản ghi | Ý nghĩa |
+|------------------|------------|---------|
+| 1.0 | 452 | Xác nhận từ cả 2 nguồn |
+| 0.95 - 0.99 | 2 | Khớp mờ với độ tương đồng cao |
+| 0.5 | 1049 | Chỉ tìm thấy ở 1 nguồn |
 
-## Data Issues
+### Xử lý trùng lặp
+- **Số bản ghi trùng bị loại:** 151
+- **Lý do:** Cùng người có nhiều chức vụ hoặc xuất hiện nhiều lần
 
-### Known Issues
+---
 
-1. **SHS ticker empty on CafeF**
-   - CafeF API returns no data for SHS
-   - Impact: 1 ticker missing
-   - Mitigation: Available from Vietstock
+## Các vấn đề dữ liệu đã biết
 
-2. **DVD ticker empty on Vietstock**
-   - Vietstock page has no leadership data
-   - Impact: 1 ticker missing
-   - Mitigation: Available from CafeF
+### 1. SAB - CafeF (Đã khắc phục)
+- **Vấn đề:** Lần đầu trả về trang trống
+- **Giải pháp:** Retry logic thành công lần 2
+- **Tác động:** Không mất dữ liệu
 
-3. **Board Type Classification Differences**
-   - CafeF: Uses full names ("Hội đồng quản trị")
-   - Vietstock: Uses abbreviations ("HĐQT")
-   - Resolution: Standardized to abbreviations
+### 2. DVD - Vietstock
+- **Vấn đề:** Dữ liệu ban lãnh đạo bị che bởi `*** ***` (nội dung trả phí)
+- **Nguyên nhân:** Vietstock yêu cầu tài khoản Premium để xem thông tin một số công ty
+- **Dữ liệu thực tế:** `Họ và tên: *** ***`, `Chức vụ: ***`
+- **Tác động:** Mất 1 ticker từ Vietstock
+- **Khắc phục:** Dữ liệu có sẵn từ CafeF (23 bản ghi)
 
-4. **Role Format Variations**
-   - CafeF: "Chủ tịch HĐQT"
-   - Vietstock: "CTHĐQT"
-   - Resolution: Kept original, both are correct
+### 3. Khác biệt định dạng Board Type
+| CafeF | Vietstock | Chuẩn hóa |
+|-------|-----------|-----------|
+| Hội đồng quản trị | HĐQT | HĐQT |
+| Ban giám đốc | Ban GĐ | Ban GĐ |
+| Ban kiểm toán | BKS | BKS |
 
-### Data Quality Checks Implemented
+**Giải pháp:** Ưu tiên giá trị từ Vietstock vì ngắn gọn và chuẩn hóa hơn.
 
-1. ✅ Name normalization (lowercase, remove diacritics)
-2. ✅ Board type standardization
-3. ✅ Duplicate detection by member_id
-4. ✅ Confidence scoring for match quality
-5. ✅ Source tracking for verification
+### 4. Khác biệt định dạng Role
+- **CafeF:** "Chủ tịch HĐQT", "Tổng Giám đốc"
+- **Vietstock:** "CTHĐQT", "TGĐ"
+- **Giải pháp:** Giữ nguyên role từ nguồn gốc (cả 2 đều đúng)
 
-## Recommendations
+---
 
-1. **Increase fuzzy match threshold sensitivity**
-   - Current: 0.85
-   - Consider: 0.80 for edge cases
+## Kiểm tra chất lượng đã thực hiện
 
-2. **Add historical data tracking**
-   - Track changes over time
-   - Detect board member changes
+| Kiểm tra | Mô tả | Kết quả |
+|----------|-------|---------|
+| Name normalization | Chuẩn hóa tên (viết thường, bỏ dấu) | Thành công |
+| Board type standardization | Chuẩn hóa loại ban | Thành công |
+| Duplicate detection | Phát hiện và loại bỏ trùng lặp | 151 bản ghi loại |
+| Confidence scoring | Đánh điểm tin cậy | 3 mức: 1.0, 0.85-0.99, 0.5 |
+| Source tracking | Theo dõi nguồn dữ liệu | data_sources field |
+| Retry logic | Thử lại ticker thất bại | Tối đa 3 vòng |
 
-3. **Cross-validate with official sources**
-   - HOSE/HNX official listings
-   - Company annual reports
+---
 
-## Appendix
+## Đề xuất cải thiện
 
-### Quality Metrics Definitions
+### Ngắn hạn
+1. **Giảm ngưỡng fuzzy matching** xuống 0.80 để bắt thêm edge cases
+2. **Thêm validation** cho năm sinh (1920-2010) và tuổi (18-100)
+3. **Log chi tiết hơn** để debug các ticker thất bại
 
-| Metric | Definition |
+### Dài hạn
+1. **Theo dõi lịch sử** - Phát hiện thay đổi nhân sự qua thời gian
+2. **Cross-validate** với nguồn chính thức (báo cáo thường niên, HOSE/HNX)
+3. **Parallel scraping** với asyncio để tăng tốc
+4. **Database storage** thay vì file để query hiệu quả hơn
+
+---
+
+## Phụ lục
+
+### Định nghĩa các metric chất lượng
+
+| Metric | Định nghĩa |
 |--------|------------|
-| Completeness | % of non-null values |
-| Accuracy | % of correct values (verified manually) |
-| Consistency | Degree of uniformity in data representation |
-| Confidence | Match reliability score (0-1) |
+| Completeness | % giá trị không null |
+| Accuracy | % giá trị chính xác (kiểm tra thủ công) |
+| Consistency | Mức độ đồng nhất trong biểu diễn dữ liệu |
+| Confidence | Điểm tin cậy khớp (0-1) |
 
-### Board Type Mapping
+### Ánh xạ Board Type
 
-| Standard | CafeF Format | Vietstock Format |
-|----------|--------------|------------------|
-| HĐQT | Hội đồng quản trị | HĐQT |
-| Ban GĐ | Ban giám đốc / Kế toán trưởng | Ban GĐ |
-| BKS | Ban kiểm toán | BKS |
-| Khác | Vị trí khác | Khác |
+| Chuẩn | CafeF | Vietstock | Chức vụ liên quan |
+|-------|-------|-----------|-------------------|
+| HĐQT | Hội đồng quản trị | HĐQT | CT, Phó CT, TV HĐQT |
+| Ban GĐ | Ban giám đốc | Ban GĐ | TGĐ, Phó TGĐ, KTT |
+| BKS | Ban kiểm toán | BKS | Trưởng BKS, TV BKS |
+| Khác | Vị trí khác | Khác | Thư ký, Quản trị viên |
