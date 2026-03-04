@@ -55,7 +55,7 @@ ROLE_TO_BOARD_TYPE = {
 
 
 def get_board_type(role: str) -> str:
-    """Ánh xạ chức vụ sang loại ban dựa trên từ khóa."""
+    """Ánh xạ chức vụ sang loại ban."""
     role_normalized = role.strip()
     
     # Khớp trực tiếp trước
@@ -75,30 +75,22 @@ def get_board_type(role: str) -> str:
 
 
 class VietstockScraper:
-    """
-    Scraper thu thập dữ liệu ban lãnh đạo từ Vietstock.
-    
-    Sử dụng requests.Session để xử lý CSRF token và cookies tự động.
-    Vietstock yêu cầu session cookies để truy cập dữ liệu, được lấy
-    bằng cách truy cập trang chủ trước.
-    """
+    """Scraper thu thập dữ liệu ban lãnh đạo từ Vietstock."""
     
     BASE_URL = "https://finance.vietstock.vn"
     LEADER_URL = "{base}/{ticker}/ban-lanh-dao.htm"
     
     def __init__(self, config: dict):
-        """Khởi tạo scraper với cấu hình."""
+        """Khởi tạo scraper."""
         self.config = config
         self.scraping_config = config.get('scraping', {})
         self.timeout = self.scraping_config.get('timeout', 30)
         self.delay = self.scraping_config.get('delay', 1.5)
         self.max_retries = self.scraping_config.get('max_retries', 3)
         
-        # Khởi tạo session
         self.session = None
         self._init_session()
         
-        # Thống kê
         self.stats = {
             'total_tickers': 0,
             'successful': 0,
@@ -107,17 +99,10 @@ class VietstockScraper:
         }
     
     def _init_session(self):
-        """
-        Khởi tạo requests session với headers phù hợp.
-        
-        Xử lý CSRF Token:
-        - Vietstock thiết lập cookies __RequestVerificationToken và ASP.NET_SessionId
-        - Các cookies này được lấy tự động khi truy cập bất kỳ trang nào
-        - Session lưu giữ cookies giữa các requests
-        """
+        """Khởi tạo session với CSRF token."""
         self.session = requests.Session()
         
-        # Thiết lập headers giả lập trình duyệt thực
+        # Headers giả lập trình duyệt
         self.session.headers.update({
             'User-Agent': self.scraping_config.get(
                 'user_agent',
@@ -130,35 +115,26 @@ class VietstockScraper:
             'Upgrade-Insecure-Requests': '1',
         })
         
-        # Thiết lập session bằng cách truy cập trang chủ
+        # Lấy cookies từ trang chủ
         try:
-            logger.info("Đang thiết lập session Vietstock bằng cách truy cập trang chủ...")
+            logger.info("Đang thiết lập session Vietstock...")
             resp = self.session.get(self.BASE_URL, timeout=self.timeout)
             resp.raise_for_status()
             
-            # Ghi log cookies đã lấy
             cookies = self.session.cookies.get_dict()
             if '__RequestVerificationToken' in cookies:
-                logger.info("Đã lấy CSRF token thành công")
+                logger.info("Đã lấy CSRF token")
             if 'ASP.NET_SessionId' in cookies:
-                logger.info(f"Đã lấy Session ID: {cookies['ASP.NET_SessionId'][:8]}...")
+                logger.info(f"Session ID: {cookies['ASP.NET_SessionId'][:8]}...")
                 
-            logger.info(f"Session đã thiết lập. Cookies: {list(cookies.keys())}")
+            logger.info(f"Session đã thiết lập")
             
         except requests.RequestException as e:
             logger.error(f"Không thể thiết lập session: {e}")
             raise
     
     def _fetch_page(self, ticker: str) -> Optional[str]:
-        """
-        Lấy trang ban lãnh đạo cho một mã cổ phiếu.
-        
-        Args:
-            ticker: Mã cổ phiếu (ví dụ: 'FPT', 'VNM')
-            
-        Returns:
-            Nội dung HTML hoặc None nếu thất bại
-        """
+        """Lấy trang ban lãnh đạo."""
         url = self.LEADER_URL.format(base=self.BASE_URL, ticker=ticker)
         
         for attempt in range(self.max_retries):
@@ -168,9 +144,8 @@ class VietstockScraper:
                 resp = self.session.get(url, timeout=self.timeout)
                 resp.raise_for_status()
                 
-                # Kiểm tra có nội dung thực sự không
                 if len(resp.text) < 1000:
-                    logger.warning(f"Phản hồi quá ngắn cho {ticker}, có thể bị chặn")
+                    logger.warning(f"Phản hồi quá ngắn cho {ticker}")
                     continue
                     
                 return resp.text
@@ -180,11 +155,10 @@ class VietstockScraper:
             except requests.HTTPError as e:
                 logger.warning(f"HTTP error for {ticker}: {e}")
                 if e.response.status_code == 404:
-                    return None  # Không tìm thấy mã
+                    return None
             except requests.RequestException as e:
                 logger.warning(f"Request error for {ticker}: {e}")
             
-            # Lùi theo cấp số nhân
             if attempt < self.max_retries - 1:
                 sleep_time = (2 ** attempt) + random.uniform(0, 1)
                 time.sleep(sleep_time)
@@ -192,28 +166,13 @@ class VietstockScraper:
         return None
     
     def _parse_board_table(self, table, ticker: str, scraped_at: str) -> List[Dict]:
-        """
-        Phân tích bảng thành viên ban lãnh đạo từ Vietstock.
-        
-        Cấu trúc bảng:
-        - Header: Thời gian | Họ và tên | Chức vụ | Năm sinh | Trình độ | Cổ phần | Thời gian gắn bó
-        - Dòng: Date | Name | Role | Birth Year | Education | Shares | Tenure
-        
-        Args:
-            table: Element bảng BeautifulSoup
-            ticker: Mã cổ phiếu
-            scraped_at: Thời điểm thu thập
-            
-        Returns:
-            Danh sách dict cá nhân
-        """
+        """Phân tích bảng thành viên."""
         records = []
         rows = table.find_all('tr')
         
         if len(rows) < 2:
             return records
         
-        # Bỏ qua dòng header (dòng đầu)
         current_period = None
         
         for row in rows[1:]:
@@ -222,25 +181,20 @@ class VietstockScraper:
                 continue
             
             try:
-                # Xử lý rowspan cho kỳ báo cáo (ô đầu có thể được merge)
                 cell_index = 0
                 
-                # Kiểm tra ô đầu có rowspan (chỉ báo kỳ)
                 first_cell = cells[0]
                 if first_cell.has_attr('rowspan'):
                     current_period = first_cell.get_text(strip=True)
                     cell_index = 1
                 elif current_period is None:
-                    # Dòng đầu chưa thiết lập kỳ
                     current_period = first_cell.get_text(strip=True)
                     cell_index = 1
                 
-                # Đảm bảo có đủ ô
                 remaining_cells = cells[cell_index:]
                 if len(remaining_cells) < 6:
                     continue
                 
-                # Trích xuất dữ liệu
                 name_raw = remaining_cells[0].get_text(strip=True)
                 role = remaining_cells[1].get_text(strip=True)
                 year_of_birth = remaining_cells[2].get_text(strip=True)
@@ -252,27 +206,24 @@ class VietstockScraper:
                 if '***' in name_raw or name_raw == '-':
                     continue
                 
-                # Làm sạch tên - xóa tiền tố danh xưng
+                # Xóa tiền tố danh xưng
                 person_name = name_raw
                 for prefix in ['Ông ', 'Bà ', 'ông ', 'bà ']:
                     if person_name.startswith(prefix):
                         person_name = person_name[len(prefix):]
                         break
                 
-                # Bỏ qua tên trống
                 if not person_name or person_name == '-':
                     continue
                 
-                # Lấy loại ban từ chức vụ
                 board_type = get_board_type(role)
                 
-                # Tính tuổi từ năm sinh
                 age = None
                 if year_of_birth and year_of_birth.isdigit():
                     current_year = datetime.now().year
                     age = current_year - int(year_of_birth)
                 
-                # Tạo bản ghi với schema giống CafeF + các trường bổ sung
+                # Tạo bản ghi
                 record = {
                     'ticker': ticker,
                     'exchange': self._get_exchange(ticker),
@@ -283,8 +234,7 @@ class VietstockScraper:
                     'source': 'vietstock',
                     'scraped_at': scraped_at,
                     'name_normalized': normalize_name(person_name),
-                    'is_current': True,  # Bảng đầu là mới nhất
-                    # Các trường bổ sung từ Vietstock
+                    'is_current': True,
                     'year_of_birth': year_of_birth if year_of_birth and year_of_birth != '-' else None,
                     'education': education if education and education not in ['-', 'N/a', 'N/A'] else None,
                     'shares': shares if shares and shares != '-' else None,
@@ -301,26 +251,17 @@ class VietstockScraper:
         return records
     
     def _get_exchange(self, ticker: str) -> str:
-        """Lấy sàn giao dịch cho mã cổ phiếu từ config."""
+        """Lấy sàn giao dịch."""
         tickers_config = self.config.get('tickers', [])
         for t in tickers_config:
             if t.get('ticker') == ticker:
                 return t.get('exchange', 'unknown').upper()
         
-        # Ánh xạ mặc định cho các mã thông dụng
         hnx_tickers = {'SHB', 'PVS', 'VCS', 'MBS', 'NVB', 'HUT', 'IDC', 'CEO', 'PVI', 'SHS', 'DVD', 'TAR', 'PVB'}
         return 'HNX' if ticker in hnx_tickers else 'HOSE'
     
     def scrape_ticker(self, ticker: str) -> List[Dict]:
-        """
-        Thu thập dữ liệu ban lãnh đạo cho một mã cổ phiếu.
-        
-        Args:
-            ticker: Mã cổ phiếu
-            
-        Returns:
-            Danh sách bản ghi thành viên
-        """
+        """Thu thập dữ liệu cho một mã."""
         logger.info(f"Scraping Vietstock for {ticker}")
         scraped_at = datetime.now().isoformat()
         
@@ -330,20 +271,16 @@ class VietstockScraper:
             return []
         
         soup = BeautifulSoup(html, 'lxml')
-        
-        # Tìm tất cả bảng dữ liệu (có class 'table')
         tables = soup.find_all('table', class_='table')
         
         if not tables:
             logger.warning(f"No data tables found for {ticker}")
             return []
         
-        # Chỉ phân tích bảng đầu (dữ liệu mới nhất)
-        # Các bảng khác chứa dữ liệu lịch sử có thể bị che
+        # Chỉ lấy bảng đầu (dữ liệu mới nhất)
         records = []
         if tables:
             first_table_records = self._parse_board_table(tables[0], ticker, scraped_at)
-            # Đánh dấu tất cả là hiện tại
             for r in first_table_records:
                 r['is_current'] = True
             records.extend(first_table_records)
@@ -352,17 +289,8 @@ class VietstockScraper:
         return records
     
     def scrape_all(self, tickers: List[str] = None) -> pd.DataFrame:
-        """
-        Thu thập dữ liệu ban lãnh đạo cho tất cả các mã.
-        
-        Args:
-            tickers: Danh sách mã cổ phiếu. Nếu None, sử dụng config hoặc danh sách mặc định.
-            
-        Returns:
-            DataFrame chứa tất cả dữ liệu thành viên
-        """
+        """Thu thập dữ liệu cho tất cả các mã."""
         if tickers is None:
-            # Lấy ticker từ config
             tickers_config = self.config.get('tickers', [])
             if tickers_config:
                 tickers = [t['ticker'] for t in tickers_config]
@@ -371,10 +299,10 @@ class VietstockScraper:
         
         self.stats['total_tickers'] = len(tickers)
         all_records = []
-        failed_tickers = []  # Theo dõi ticker thất bại để retry
-        successful_tickers = set()  # Theo dõi ticker thành công
+        failed_tickers = []
+        successful_tickers = set()
         
-        logger.info(f"Starting Vietstock scrape for {len(tickers)} tickers")
+        logger.info(f"Starting Vietstock scrape for {len(tickers)} tickers"))
         
         for i, ticker in enumerate(tickers, 1):
             try:
@@ -390,28 +318,27 @@ class VietstockScraper:
                 logger.error(f"Error scraping {ticker}: {e}")
                 failed_tickers.append(ticker)
             
-            # Giới hạn tốc độ với jitter
+            # Giới hạn tốc độ
             if i < len(tickers):
                 sleep_time = self.delay + random.uniform(0, 0.5)
-                logger.debug(f"Nghỉ {sleep_time:.2f}s trước request tiếp")
+                logger.debug(f"Nghỉ {sleep_time:.2f}s")
                 time.sleep(sleep_time)
             
-            # Ghi log tiến độ
             if i % 5 == 0:
                 logger.info(f"Progress: {i}/{len(tickers)} tickers processed")
         
-        # Retry các ticker thất bại với delay dài hơn (tối đa 3 vòng retry)
+        # Retry các ticker thất bại (tối đa 3 vòng)
         max_retry_rounds = 3
         retry_round = 0
         
         while failed_tickers and retry_round < max_retry_rounds:
             retry_round += 1
-            retry_delay = self.delay * (retry_round + 1)  # Tăng delay mỗi vòng
+            retry_delay = self.delay * (retry_round + 1)
             
-            logger.info(f"Retry round {retry_round}/{max_retry_rounds} for {len(failed_tickers)} failed tickers (delay: {retry_delay}s)")
-            time.sleep(retry_delay * 2)  # Chờ thêm trước vòng retry
+            logger.info(f"Retry round {retry_round}/{max_retry_rounds} for {len(failed_tickers)} failed tickers")
+            time.sleep(retry_delay * 2)
             
-            # Khởi tạo lại session cho retry (cookies mới)
+            # Khởi tạo lại session (cookies mới)
             self._init_session()
             
             still_failed = []
@@ -436,19 +363,15 @@ class VietstockScraper:
             
             failed_tickers = still_failed
         
-        # Cập nhật thống kê cuối
         self.stats['successful'] = len(successful_tickers)
         self.stats['failed'] = len(failed_tickers)
         self.stats['total_records'] = len(all_records)
         
         if failed_tickers:
-            logger.warning(f"Các ticker thất bại cuối cùng sau tất cả retry: {failed_tickers}")
+            logger.warning(f"Final failed tickers: {failed_tickers}")
         
-        # Chuyển sang DataFrame
         df = pd.DataFrame(all_records)
-        
         logger.info(f"Scraping complete. Stats: {self.stats}")
-        
         return df
     
     def close(self):
@@ -459,34 +382,27 @@ class VietstockScraper:
 
 
 def save_to_parquet(df: pd.DataFrame, output_path: str):
-    """Lưu DataFrame sang định dạng Parquet."""
+    """Lưu DataFrame sang Parquet."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(output_path, engine='pyarrow', index=False)
     logger.info(f"Saved {len(df)} records to {output_path}")
 
 
 def main():
-    """Điểm vào chính của Vietstock scraper."""
-    # Tải cấu hình
+    """Điểm vào chính."""
     config = load_config()
-    
-    # Thiết lập logging
     setup_logging(config)
-    
-    # Khởi tạo scraper
     scraper = VietstockScraper(config)
     
     try:
-        # Thu thập tất cả ticker
         df = scraper.scrape_all()
         
         if not df.empty:
-            # Lưu dữ liệu thô trước
+            # Lưu raw và processed
             raw_path = Path(__file__).parent.parent / 'data' / 'raw' / 'vietstock_raw.parquet'
             raw_path.parent.mkdir(parents=True, exist_ok=True)
             save_to_parquet(df, str(raw_path))
             
-            # Lưu dữ liệu đã xử lý
             output_path = Path(__file__).parent.parent / 'data' / 'processed' / 'vietstock_processed.parquet'
             output_path.parent.mkdir(parents=True, exist_ok=True)
             save_to_parquet(df, str(output_path))
@@ -500,11 +416,9 @@ def main():
             print(f"Failed: {scraper.stats['failed']}")
             print(f"Total records: {scraper.stats['total_records']}")
             
-            # Hiển thị phân bố loại ban
             print("\nBoard type distribution:")
             print(df['board_type'].value_counts().to_string())
             
-            # Hiển thị dữ liệu mẫu
             print("\nSample records:")
             print(df[['ticker', 'person_name', 'role', 'board_type', 'year_of_birth', 'education']].head(10).to_string())
         else:
